@@ -565,28 +565,39 @@ button,
 /* Responsive para pantalla juego */
 /* ============================= */
 
+/* ============================= */
+/* Responsive para pantalla juego */
+/* ============================= */
+
 .game-page {
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
   background: #050618;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .game-container {
   width: 100%;
-  min-height: calc(100vh - 70px);
+  max-width: 1280px;
+  min-height: calc(100vh - 90px);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   overflow: hidden;
-  padding-top: 24px;
+  margin: 0 auto;
+  padding: 32px 16px 16px;
 }
 
 .game-container canvas {
-  width: min(100vw, 1100px) !important;
+  width: 100% !important;
+  max-width: 1280px;
   height: auto !important;
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - 120px);
   display: block;
+  margin: 0 auto;
 }
 
 /* Celulares y tablets */
@@ -596,8 +607,9 @@ button,
   }
 
   .game-container {
+    max-width: 100%;
     min-height: calc(100dvh - 80px);
-    padding: 6px;
+    padding: 8px;
     align-items: flex-start;
   }
 
@@ -607,14 +619,13 @@ button,
   }
 }
 
-/* Celulares pequeños */
 @media (max-width: 480px) {
   .game-container {
     padding: 4px;
   }
 
   .game-container canvas {
-    max-width: 100vw;
+    max-width: 100%;
     max-height: calc(100dvh - 110px);
   }
 }
