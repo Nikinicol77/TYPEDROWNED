@@ -282,6 +282,19 @@ class PlayGame extends Phaser.Scene {
         this.music        = null;
         this.musicEnabled = true;
         this.soundBtn     = null;
+        this.maxLives     = 6;
+        this.lives        = 6;
+        this.errorPositions = new Set();
+        this.livesPhaserText = null;
+        this.avatarPhaserText = null;
+        this.previousBodyOverflow = '';
+        this.previousHtmlOverflow = '';
+        this.runnerDoll = null;
+        this.runnerGraphics = null;
+        this.runnerBaseY = 0;
+        this.runnerIsFalling = false;
+        this.runnerFallTween = null;
+        this.isEndingByLives = false;
     }
 
     create() {
@@ -331,6 +344,14 @@ class PlayGame extends Phaser.Scene {
             fontSize: '14px', fill: '#aaffaa', fontFamily: 'Courier New'
         });
 
+        this.livesPhaserText = this.add.text(W - 16, 58, 'Vidas: 💚💚💚💚💚💚', {
+            fontSize: '14px', fill: '#ffdddd', fontFamily: 'Courier New', fontStyle: 'bold'
+        }).setOrigin(1, 0);
+
+        this.avatarPhaserText = this.add.text(W - 16, 78, 'Jugador: 🧑‍🚀', {
+            fontSize: '18px', fill: '#ffffff', fontFamily: 'Courier New'
+        }).setOrigin(1, 0);
+
         this.add.text(W / 2, 85, 'Escribe la frase exactamente como aparece:', {
             fontSize: '12px', fill: '#666', fontFamily: 'Courier New'
         }).setOrigin(0.5);
@@ -342,6 +363,10 @@ class PlayGame extends Phaser.Scene {
         this.progressPct  = this.add.text(W / 2, H - 28, '0%', {
             fontSize: '10px', fill: '#888', fontFamily: 'Courier New'
         }).setOrigin(0.5);
+
+        // Muñeco humano que avanza sobre la barra de progreso.
+        // Representa el recorrido del jugador durante la escritura.
+        this.createRunnerDoll(30, H - 49);
 
         this.hintText = this.add.text(W / 2, H - 60, '🖱 Haz clic en la pantalla para escribir', {
             fontSize: '12px', fill: '#444', fontFamily: 'Courier New'
@@ -362,6 +387,13 @@ class PlayGame extends Phaser.Scene {
         const canvas = this.game.canvas;
         const rect   = canvas.getBoundingClientRect();
         const scaleX = rect.width / W;
+
+        // En celulares, el teclado puede intentar desplazar la página al enfocar el input.
+        // Se bloquea el scroll mientras la escena de juego está activa.
+        this.previousBodyOverflow = document.body.style.overflow;
+        this.previousHtmlOverflow = document.documentElement.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
 
         this.overlay = document.createElement('div');
         this.overlay.className = 'typing-overlay';
@@ -401,11 +433,15 @@ class PlayGame extends Phaser.Scene {
         // Input invisible
         this.inputEl = document.createElement('input');
         Object.assign(this.inputEl.style, {
-            position: 'fixed', top: '-9999px', left: '-9999px',
-            opacity: '0', width: '1px', height: '1px',
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: '0.01', width: '2px', height: '2px',
+            fontSize: '16px', caretColor: 'transparent',
+            background: 'transparent', color: 'transparent',
             border: 'none', outline: 'none', pointerEvents: 'all'
         });
         this.inputEl.setAttribute('autocomplete',   'off');
+        this.inputEl.setAttribute('inputmode',      'text');
         this.inputEl.setAttribute('autocorrect',    'off');
         this.inputEl.setAttribute('autocapitalize', 'none');
         this.inputEl.setAttribute('spellcheck',     'false');
@@ -467,10 +503,172 @@ class PlayGame extends Phaser.Scene {
         }
     }
 
+
+    // ===================================================
+    //  MUÑECO HUMANO: AVANCE, ANIMACIÓN Y CAÍDA
+    // ===================================================
+    createRunnerDoll(x, y) {
+        this.runnerBaseY = y;
+        this.runnerDoll = this.add.container(x, y);
+        this.runnerGraphics = this.add.graphics();
+        this.runnerDoll.add(this.runnerGraphics);
+        this.runnerDoll.setDepth(20);
+        this.drawRunnerDoll('run');
+    }
+
+    drawRunnerDoll(state = 'run') {
+        if (!this.runnerGraphics) return;
+
+        const g = this.runnerGraphics;
+        g.clear();
+
+        const skin = state === 'lost' ? 0xffb3b3 : 0xffddaa;
+        const shirt = state === 'lost' ? 0xff5555 : 0x35d36b;
+        const pants = 0x2f6bff;
+        const outline = 0x111111;
+
+        g.lineStyle(3, outline, 1);
+        g.fillStyle(skin, 1);
+        g.fillCircle(0, -30, 8);
+
+        // Cuello y cuerpo
+        g.lineStyle(4, shirt, 1);
+        g.lineBetween(0, -21, 0, 0);
+
+        // Brazos y piernas con pose diferente cuando corre o cae
+        if (state === 'lost') {
+            g.lineStyle(4, shirt, 1);
+            g.lineBetween(0, -16, -14, -10);
+            g.lineBetween(0, -16, 14, -10);
+            g.lineStyle(4, pants, 1);
+            g.lineBetween(0, 0, -15, 8);
+            g.lineBetween(0, 0, 16, 8);
+        } else {
+            g.lineStyle(4, shirt, 1);
+            g.lineBetween(0, -16, -13, -25);
+            g.lineBetween(0, -16, 14, -8);
+            g.lineStyle(4, pants, 1);
+            g.lineBetween(0, 0, -12, 17);
+            g.lineBetween(0, 0, 13, 15);
+        }
+
+        // Zapatos
+        g.lineStyle(3, outline, 1);
+        g.lineBetween(-12, 17, -20, 17);
+        g.lineBetween(13, 15, 21, 15);
+    }
+
+    updateRunnerDoll(progressPercent) {
+        if (!this.runnerDoll || this.runnerIsFalling || this.isEndingByLives) return;
+
+        const pct = Phaser.Math.Clamp(progressPercent, 0, 1);
+        const newX = 30 + (this.progressMaxW * pct);
+
+        this.tweens.add({
+            targets: this.runnerDoll,
+            x: newX,
+            y: this.runnerBaseY + Math.sin(pct * Math.PI * 8) * 3,
+            angle: Math.sin(pct * Math.PI * 10) * 5,
+            duration: 120,
+            ease: 'Sine.easeOut'
+        });
+    }
+
+    makeRunnerFall(finalFall = false) {
+        if (!this.runnerDoll || this.runnerIsFalling) return;
+
+        this.runnerIsFalling = true;
+        this.drawRunnerDoll(finalFall ? 'lost' : 'run');
+
+        if (this.runnerFallTween) this.runnerFallTween.stop();
+
+        this.runnerFallTween = this.tweens.add({
+            targets: this.runnerDoll,
+            angle: 90,
+            y: this.runnerBaseY + 22,
+            duration: 180,
+            ease: 'Back.easeIn',
+            onComplete: () => {
+                if (finalFall) {
+                    this.drawRunnerDoll('lost');
+                    return;
+                }
+
+                this.time.delayedCall(260, () => {
+                    this.tweens.add({
+                        targets: this.runnerDoll,
+                        angle: 0,
+                        y: this.runnerBaseY,
+                        duration: 220,
+                        ease: 'Back.easeOut',
+                        onComplete: () => {
+                            this.runnerIsFalling = false;
+                            this.drawRunnerDoll('run');
+                        }
+                    });
+                });
+            }
+        });
+    }
+
+    updateLivesHud() {
+        if (!this.livesPhaserText || !this.avatarPhaserText) return;
+
+        const full = '💚'.repeat(this.lives);
+        const empty = '🖤'.repeat(this.maxLives - this.lives);
+        const damage = this.maxLives - this.lives;
+        const stages = ['🧑‍🚀', '🙂', '😟', '😰', '🥴', '😵', '🌑'];
+        const avatar = stages[Math.min(damage, stages.length - 1)];
+
+        this.livesPhaserText.setText(`Vidas: ${full}${empty}`);
+        this.avatarPhaserText.setText(`Jugador: ${avatar}`);
+        this.avatarPhaserText.setStyle({ fill: this.lives <= 2 ? '#ff7777' : '#ffffff' });
+    }
+
+    checkLifeLoss(raw) {
+        const target = this.targetText;
+
+        // Si el usuario borra o corrige, se limpian posiciones que ya no están equivocadas.
+        for (const pos of Array.from(this.errorPositions)) {
+            if (pos >= raw.length || raw[pos] === target[pos]) {
+                this.errorPositions.delete(pos);
+            }
+        }
+
+        let lostLife = false;
+
+        for (let i = 0; i < raw.length; i++) {
+            if (raw[i] !== target[i] && !this.errorPositions.has(i)) {
+                this.errorPositions.add(i);
+                this.lives = Math.max(0, this.lives - 1);
+                lostLife = true;
+            }
+        }
+
+        this.updateLivesHud();
+
+        if (lostLife) {
+            this.makeRunnerFall(this.lives <= 0);
+            if (this.cameras?.main) this.cameras.main.shake(120, 0.004);
+        }
+
+        if (this.lives <= 0 && !this.isEndingByLives) {
+            this.isEndingByLives = true;
+            this.typed = raw;
+            this.renderPhrase();
+            this.updateStats();
+            if (this.inputEl) this.inputEl.blur();
+            this.time.delayedCall(650, () => this.endGame(false));
+        }
+    }
+
     onInput() {
         if (this.finished) return;
         let raw = this.inputEl.value;
         if (raw.length > this.targetText.length) { raw = raw.slice(0, this.targetText.length); this.inputEl.value = raw; }
+
+        this.checkLifeLoss(raw);
+        if (this.finished || this.isEndingByLives) return;
 
         if (!this.timerStarted && raw.length > 0) {
             this.timerStarted = true;
@@ -498,6 +696,7 @@ class PlayGame extends Phaser.Scene {
         const pct    = typed.length / target.length;
         this.progressBar.width = Math.max(2, this.progressMaxW * pct);
         this.progressPct.setText(Math.round(pct * 100) + '%');
+        this.updateRunnerDoll(pct);
         if (this.startTime) {
             const mins  = (Date.now() - this.startTime) / 60000;
             const words = typed.trim().split(/\s+/).filter(Boolean).length;
@@ -557,7 +756,12 @@ class PlayGame extends Phaser.Scene {
         });
     }
 
-    cleanup() { this.stopMusic(); if (this.overlay && this.overlay.parentNode) { this.overlay.parentNode.removeChild(this.overlay); this.overlay = null; } }
+    cleanup() {
+        this.stopMusic();
+        document.body.style.overflow = this.previousBodyOverflow || '';
+        document.documentElement.style.overflow = this.previousHtmlOverflow || '';
+        if (this.overlay && this.overlay.parentNode) { this.overlay.parentNode.removeChild(this.overlay); this.overlay = null; }
+    }
     shutdown() { this.cleanup(); }
     destroy()  { this.cleanup(); }
 }

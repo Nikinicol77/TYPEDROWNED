@@ -629,3 +629,27 @@ button,
     max-height: calc(100dvh - 110px);
   }
 }
+/* ============================= */
+/* Ajuste teclado móvil - juego */
+/* ============================= */
+.typing-overlay {
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+body:has(.typing-overlay) {
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .game-page {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .game-container {
+    height: calc(100dvh - 70px);
+    overflow: hidden;
+    align-items: flex-start;
+  }
+}
