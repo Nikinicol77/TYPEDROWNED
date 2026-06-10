@@ -1,0 +1,17 @@
+{
+  "name": "typequest-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "latest",
+    "express": "latest",
+    "mysql2": "latest",
+    "bcryptjs": "latest"
+  }
+}
