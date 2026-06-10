@@ -56,14 +56,6 @@ export function IdentityPage() {
           {values.map((value) => <span className="value-badge" key={value}>{value}</span>)}
         </div>
 
-        <div className="identity-hero soft">
-          <strong>Nota para la exposición</strong>
-          <p>
-            Los subniveles especiales 10 y 20 están preparados para coros adventistas. Puedes cambiar el audio
-            y la letra sin afectar el progreso, el ranking ni la conexión con MySQL.
-          </p>
-        </div>
-
         <div className="button-row">
           <Link className="btn-primary" to="/menu">Ir al menú</Link>
           <Link className="btn-secondary" to="/ranking">Ver ranking</Link>
