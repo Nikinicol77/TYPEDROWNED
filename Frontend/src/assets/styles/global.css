@@ -577,15 +577,15 @@ button,
   min-height: calc(100vh - 70px);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   overflow: hidden;
+  padding-top: 24px;
 }
 
 .game-container canvas {
-  max-width: 100%;
-  max-height: calc(100vh - 90px);
-  width: auto !important;
+  width: min(100vw, 1100px) !important;
   height: auto !important;
+  max-height: calc(100vh - 100px);
   display: block;
 }
 
