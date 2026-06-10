@@ -515,6 +515,7 @@ class PlayGame extends Phaser.Scene {
 
         setTimeout(() => this.inputEl.focus(), 150);
         this.game.canvas.addEventListener('click', () => this.inputEl.focus());
+        this.game.canvas.addEventListener('touchstart', () => this.inputEl.focus());
     }
 
     renderPhrase() {
@@ -930,6 +931,12 @@ window.onload = function () {
         height: 600,
         parent: 'game-container',
         backgroundColor: '#0a1a00',
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: 800,
+            height: 600
+        },
         scene: [Preload, LevelSelect, PlayGame, ResultScreen]
     });
 };

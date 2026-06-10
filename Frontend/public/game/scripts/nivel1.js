@@ -417,6 +417,7 @@ class PlayGame extends Phaser.Scene {
         document.body.appendChild(this.overlay);
         setTimeout(() => this.inputEl.focus(), 150);
         this.game.canvas.addEventListener('click', () => this.inputEl.focus());
+        this.game.canvas.addEventListener('touchstart', () => this.inputEl.focus());
     }
 
     renderPhrase() {
@@ -673,7 +674,16 @@ window.onload = function () {
         width: 800,
         height: 600,
         parent: 'game-container',
-        backgroundColor: '#1a0a00',
+        backgroundColor: '#0a1a00',
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: 800,
+            height: 600
+        },
         scene: [Preload, LevelSelect, PlayGame, ResultScreen]
     });
 };
+
+//Enviar resultados a TypeQuestProgress
+
